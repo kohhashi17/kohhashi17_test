@@ -94,8 +94,8 @@
                 align-items: center;
                 z-index: 100; 
             }
-            .overlay-message {
-                font-size: 60px;
+            .overlay-message-win {
+                font-size: 100px;
                 color: gold;
                 text-align: center;
                 background-color: rgba(0,0,0,0.7);
@@ -103,6 +103,36 @@
                 border-radius: 15px;
                 white-space: pre; 
                 box-shadow: 0 0 30px gold;
+            }
+            .overlay-message-burst {
+                font-size: 100px;
+                color: red;
+                text-align: center;
+                background-color: rgba(0,0,0,0.7);
+                padding: 40px 60px;
+                border-radius: 15px;
+                white-space: pre; 
+                box-shadow: 0 0 30px red;
+            }
+            .overlay-message-lose {
+                font-size: 100px;
+                color: blue;
+                text-align: center;
+                background-color: rgba(0,0,0,0.7);
+                padding: 40px 60px;
+                border-radius: 15px;
+                white-space: pre; 
+                box-shadow: 0 0 30px blue;
+            }
+            .overlay-message {
+                font-size: 60px;
+                color: rgb(204, 204, 204);
+                text-align: center;
+                background-color: rgba(0,0,0,0.7);
+                padding: 40px 60px;
+                border-radius: 15px;
+                white-space: pre; 
+                box-shadow: 0 0 30px rgb(184, 184, 184);
             }
             .overlay-content {
                 display: flex;
@@ -158,7 +188,7 @@
             .fade-gameset-enter-to, .fade-gameset-leave-from {
             opacity: 1;
             }
-            
+
             .card-fade-enter-active, .card-fade-leave-active {
             transition: all 1.0s ease;
             }
@@ -195,8 +225,11 @@
             <transition name="fade-gameset">
                 <div v-if = " gameOver && step === 'result' " class = "overlay ">
                     <div class="overlay-content">
-                        <div class="overlay-message">{{message}}</div>
-                        <div class="overlay-message">ディーラー: {{dealerTotal}}<br>あなた: {{playerTotal}}</div>
+                        <div v-if = "burstFlag" class="overlay-message-burst">{{message}}</div>
+                        <div v-if = "!burstFlag && judgeStep === 'lose'" class="overlay-message-lose">{{message}}</div>
+                        <div v-if = "!burstFlag && judgeStep === 'win'" class="overlay-message-win">{{message}}</div>
+                        <div v-if = "!burstFlag && judgeStep === 'draw'" class="overlay-message">{{message}}</div>
+                        <div class = "overlay-message">ディーラー: {{dealerTotal}}<br>あなた: {{playerTotal}}</div>
                     </div>
                         <div class = "overlay-buttons">
                         <button  @click = "restartGame" class = "button">再プレイ</button>
@@ -255,6 +288,8 @@
                         step: "playerTurn",
                         hideCards: false,
                         showPlayerButtons: false,
+                        burstFlag: false,
+                        judgeStep: null,
                     }
                 },
 
@@ -318,6 +353,8 @@
                         this.messageFlag = false;
                         this.step = "playerTurn";
                         this.hideCards = false;
+                        this.burstFlag = false;
+                        this.judgeStep = null;
                     },
 
                     restartGame() {
@@ -350,7 +387,8 @@
                         this.playerHand.push(this.yamahuda.pop());
                         this.playerTotal = this.calculateHand(this.playerHand);
                         if(this.playerTotal > 21) {
-                            this.message = "あなたがバースト!";
+                            this.message = "YOU BURST!!";
+                            this.burstFlag = true;
                             this.dealerTotal = this.calculateHand(this.dealerHand)
                             this.gameOver = true;
                             this.dealerHidden = false;
@@ -367,7 +405,8 @@
                         
                             if(this.dealerTotal > 21) {
                                 this.messageFlag = false;
-                                this.message = "ディーラーがバースト!";
+                                this.message = "DEALER BURST!!";
+                                this.burstFlag = true;
                                 this.step = "result";
                                 this.gameOver = true;
                             }
@@ -383,11 +422,14 @@
                         if(this.gameOver === false){
                             this.messageFlag = false;
                             if(this.dealerTotal > this.playerTotal){
-                                this.message = "ディーラーの勝利！";
+                                this.message = "YOU LOSE";
+                                this.judgeStep = "lose";
                             } else if(this.dealerTotal < this.playerTotal){
-                                this.message = "あなたの勝利！";
+                                this.message = "YOU WIN!!";
+                                this.judgeStep = "win";
                             } else {
-                                this.message = "引き分け！";
+                                this.message = "DRAW";
+                                this.judgeStep = "draw";
                             }
                             
                             this.gameOver = true;
