@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru:wght@400;700&display=swap" rel="stylesheet">
+        <meta charset = "UTF-8"> 
+        <title>BlackJack</title>    
+        <style>
+            #app {
+            display: flex;            
+            flex-direction: column;   
+            align-items: center;      
+            justify-content: center;  
+            min-height: 100vh;        
+            text-align: center;       
+            gap: 20px;                             
+            }
+
+            body {
+            font-family: 'Kosugi Maru', serif;
+            background-color: rgb(1, 106, 1); 
+            color: white;           
+            text-align: center;
+            font-size: 20px;
+            }
+
+            
+            #deck img {
+            width: 150px;
+            height: auto;
+            }
+
+            .flex {
+                display: flex;
+                gap: 10px;
+            }
+
+            .flex.column {
+                flex-direction: column; 
+            }
+            .flex.handCard img {
+                width: 200px;
+                height: auto;
+            }
+
+            .flex.header {
+                align-items: center;
+                justify-content: center;
+            }
+
+            .button {
+                font-family: 'Kosugi Maru', sans-serif;
+                width: 300px;
+                font-size: 24px; 
+                padding: 20px 40px;
+                font-weight: bold; 
+                border-radius: 8px;
+                background-color: rgb(96, 44, 44);
+                color: white;                           
+                cursor: pointer; 
+            }
+            
+            .button:hover {
+                filter: brightness(50%);   
+            }
+
+
+            .area {
+                border: 2px solid gold; 
+                text-align: center;    
+                border-radius: 10px;
+                padding: 20px; 
+                margin: 20px 0;
+                background-color: rgb(77, 77, 77);
+            }
+            .message {
+                font-size: 40px;
+                background-color: rgba(174, 28, 28, 0.6);
+                border-radius: 10px;
+                padding: 20px;
+                white-space: pre-line;
+            }
+
+            .overlay {                    
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.6); 
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 100; 
+            }
+            .overlay-message {
+                font-size: 60px;
+                color: gold;
+                text-align: center;
+                background-color: rgba(0,0,0,0.7);
+                padding: 40px 60px;
+                border-radius: 15px;
+                white-space: pre; 
+                box-shadow: 0 0 30px gold;
+            }
+            .overlay-content {
+                display: flex;
+                flex-direction: column;   
+                align-items: center;       
+                gap: 20px;                
+            }
+            
+            .overlay-buttons {
+                position: absolute;
+                bottom: 50px;               
+                left: 50%;
+                transform: translateX(-50%); 
+                display: flex;
+                gap: 20px;                  
+                z-index: 101;
+            }
+
+            .overlay-title {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgb(5, 4, 4); 
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 100; 
+            }
+
+            .deck {
+                width: 200px;
+                height: auto;
+            }
+            /*フェードトランジション*/
+            .fade-enter-active, .fade-leave-active {
+            transition: opacity 1.0s ease;
+            }
+            .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+            }
+            .fade-enter-to, .fade-leave-from {
+            opacity: 1;
+            }
+            
+            .fade-gameset-enter-active, .fade-gameset-leave-active {
+            transition: opacity 2.0s ease;
+            }
+            .fade-gameset-enter-from, .fade-gameset-leave-to {
+            opacity: 0;
+            }
+            .fade-gameset-enter-to, .fade-gameset-leave-from {
+            opacity: 1;
+            }
+            
+            .card-fade-enter-active, .card-fade-leave-active {
+            transition: all 1.0s ease;
+            }
+            .card-fade-enter-from {
+            opacity: 0;
+            transform: translateY(-80px); 
+            }
+            .card-fade-enter-to {
+            opacity: 1;
+            transform: translateY(0);
+            }
+
+            </style>
+    </head>
+    <body>
+        <div id="app">
+            <transition name="fade">
+                <div v-if = "!gameStarted" class = "overlay-title flex column ">
+                    <img :src = "`images/title.png`" style="width: 1000px; height: 800px;">
+                    <button @click = "startGame" class = "button">ゲームプレイ</button>
+                </div>
+                <div class = "button-area">
+                    <div v-show = " !gameOver && step === 'playerTurn' && showPlayerButtons ">
+                        <button v-if = "gameStarted" @click = "hitplayer" class = "button">ヒット</button>
+                        <button v-if = "gameStarted" @click = "standplayer" class = "button">スタンド</button>
+                    </div>
+                </div>
+            </transition>
+            <transition name="fade"></transition>
+                <div v-show = "step === 'dealerTurn' && gameStarted " >
+                    <button @click = dealerNext class = "button">次へ</button>
+                </div>
+            </transition>
+            <transition name="fade-gameset">
+                <div v-if = " gameOver && step === 'result' " class = "overlay ">
+                    <div class="overlay-content">
+                        <div class="overlay-message">{{message}}</div>
+                        <div class="overlay-message">ディーラー: {{dealerTotal}}<br>あなた: {{playerTotal}}</div>
+                    </div>
+                        <div class = "overlay-buttons">
+                        <button  @click = "restartGame" class = "button">再プレイ</button>
+                        <button  @click = "endGame" class = "button">終了</button>
+                    </div>
+                </div>
+            </transition>
+
+            <div class = "flex column header" v-if="gameStarted">
+                <div class = "area">
+                        <div class = "flex header" >
+                            <h2>ディーラー</h2>
+                            <div v-if = "step === 'playerTurn'" v-for = "(card, index) in dealerHand.slice(0, 1)">合計点: {{charConversion(card, 0)}} + ?</div>
+                            <div v-if = "step === 'dealerTurn' || step === 'result' ">合計点: {{dealerTotal}}</div>
+                        </div>
+                    <div class = "flex handCard">
+                        <transition-group name="card-fade" tag="div" class="flex" v-if = "!hideCards">
+                            <img v-for = "(card, index) in dealerHand" :key="index" :src="`images/${(index === 0 || !dealerHidden ? card : 'question')}.png`" :alt="card">
+                        </transition-group>
+                    </div>
+                </div>
+
+                <img src="images/back.png" class="deck" alt = "deck" ref = "deck">
+
+                <div class = "area">
+                    <div class = "flex header">
+                        <h2 >あなた</h2>
+                        <div>合計点: {{playerTotal}}</div>
+                    </div>
+                    <div class = "flex handCard">
+                        <transition-group name="card-fade" tag="div" class="flex" v-if = "!hideCards">
+                            <img v-for= "(card, index) in playerHand" :key="index" :src="`images/${card}.png`" :alt="card">
+                        </transition-group>
+                        </div>
+                </div>
+            </div>
+            <transition name="fade">
+                <div v-show = "messageFlag" class = "message">{{message}}</div>
+            </transition>
+        </div>
+        <script src = "https://unpkg.com/vue@3"></script>
+        <script>
+            const BJapp = Vue.createApp({
+                data() {
+                    return {
+                        yamahuda: [],
+                        playerHand: [],
+                        dealerHand: [],
+                        dealerHidden: true,
+                        gameOver: false,
+                        message: "",
+                        dealerTotal: 0,
+                        playerTotal: 0,
+                        gameStarted: false,
+                        messageFlag: false,
+                        step: "playerTurn",
+                        hideCards: false,
+                        showPlayerButtons: false,
+                    }
+                },
+
+                methods: {
+                    shuffle(array) {
+                        for (let i = array.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [array[i], array[j]] = [array[j], array[i]];
+                        }
+                        return array;
+                    },
+
+                    initDeck() {
+                        const suits = ["♠", "♥", "♦", "♣"];
+                        const numbers = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+                        let deck = [];
+                        for (let suit of suits) {
+                            for (let number of numbers) {
+                                deck.push(number + suit);
+                            }
+                        }
+                        this.yamahuda = this.shuffle(deck);
+                    },
+
+                    resetHands() {
+                        this.playerHand = [];
+                        this.dealerHand = [];
+                    },
+
+                    initcards() {
+                        for(let i = 0, s = 1000; i < 2; i++){
+                            setTimeout(() => {
+                                this.playerHand.push(this.yamahuda.pop());
+                                this.playerTotal = this.calculateHand(this.playerHand);
+                            }, s);
+                            s += 700;
+                            setTimeout(() => {
+                                this.dealerHand.push(this.yamahuda.pop());
+                                this.playerTotal = this.calculateHand(this.playerHand);
+                                setTimeout(() => {
+                                    if(i === 1) {
+                                        this.showPlayerButtons = true;
+                                    }
+                                }, 700);
+                            }, s);
+                            s += 700;
+                        }
+                    },
+                    
+                    startGame() {
+                        this.showPlayerButtons = false;
+                        this.dealerTotal = 0;
+                        this.playerTotal = 0;
+                        this.initDeck();
+                        this.resetHands();
+                        this.initcards();
+                        this.dealerHidden = true;
+                        this.message = "";
+                        this.gameOver = false;
+                        this.gameStarted = true;
+                        this.messageFlag = false;
+                        this.step = "playerTurn";
+                        this.hideCards = false;
+                    },
+
+                    restartGame() {
+                        this.hideCards = true;
+                        this.$nextTick(() => {
+                            this.startGame();
+                            this.hideCards = false;
+                        });
+                    },
+
+                    endGame() {
+                        this.gameStarted = false;
+                        this.gameOver = false;
+                        this.messageFlag = false;
+                        this.step = "playerTurn";
+                    },
+
+                    standplayer() {
+                        if(this.gameOver) return;
+                        this.playerTotal = this.calculateHand(this.playerHand);
+                        this.messageFlag = true;
+                        this.message = "スタンドしました\nディーラーのターンに移ります";
+                        this.step = "dealerTurn";
+                        this.dealerTotal = this.calculateHand(this.dealerHand);
+                        this.dealerHidden = false;
+                    },
+
+                    hitplayer() {
+                        if(this.gameOver) return;
+                        this.playerHand.push(this.yamahuda.pop());
+                        this.playerTotal = this.calculateHand(this.playerHand);
+                        if(this.playerTotal > 21) {
+                            this.message = "あなたがバースト!";
+                            this.dealerTotal = this.calculateHand(this.dealerHand)
+                            this.gameOver = true;
+                            this.dealerHidden = false;
+                            this.step = "result";
+                        }
+                    },
+
+                    dealerNext() {
+                        this.message = "ディーラーのターンです"
+                        this.messageFlag = true;
+                        if(this.dealerTotal < 17){
+                            this.dealerHand.push(this.yamahuda.pop());
+                            this.dealerTotal = this.calculateHand(this.dealerHand);
+                        
+                            if(this.dealerTotal > 21) {
+                                this.messageFlag = false;
+                                this.message = "ディーラーがバースト!";
+                                this.step = "result";
+                                this.gameOver = true;
+                            }
+                        }
+
+                        if(this.dealerTotal >= 17) {
+                            this.judgeWinner();
+                        }
+                    },
+
+                    judgeWinner() {
+                        this.step = "result";
+                        if(this.gameOver === false){
+                            this.messageFlag = false;
+                            if(this.dealerTotal > this.playerTotal){
+                                this.message = "ディーラーの勝利！";
+                            } else if(this.dealerTotal < this.playerTotal){
+                                this.message = "あなたの勝利！";
+                            } else {
+                                this.message = "引き分け！";
+                            }
+                            
+                            this.gameOver = true;
+                        }
+                    },
+
+                    charConversion(card, currentTotal) {
+                        let number = card.slice(0, -1); 
+                        if (number === "J" || number === "Q" || number === "K") {
+                            return 10;
+                        }
+                        if (number === "A") {
+                            return (currentTotal + 11) > 21 ? 1 : 11;
+                        }
+                        return Number(number);
+                    },
+
+                    calculateHand(hand) {
+                        let total = 0;
+                        for (let card of hand) {
+                            total += this.charConversion(card, total);
+                        }
+                        return total;
+                    }
+                }
+            })
+            BJapp.mount("#app");
+        </script>
+    </body>
+    </html>
